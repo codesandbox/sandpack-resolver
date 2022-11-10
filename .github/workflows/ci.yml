@@ -1,0 +1,28 @@
+name: CI
+
+on: [push, workflow_dispatch]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup | Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Setup | Yarn
+        uses: bahmutov/npm-install@v1
+        
+      - name: Build | Typescript Check
+        run: yarn build
+
+      - name: Bundle | ESBuild
+        run: yarn bundle
+
+      - name: Test | Jest
+        run: yarn test --forceExit
+        
