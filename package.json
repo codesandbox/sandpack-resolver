@@ -1,6 +1,6 @@
 {
   "name": "sandpack-resolver",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "./lib/resolver.js",
   "license": "Apache-2.0",
   "files": [
@@ -12,9 +12,9 @@
   "scripts": {
     "test": "jest",
     "transpile:sync": "babel ./src/resolver.ts --out-file ./src/resolver.js && cp ./src/resolver.js ./lib/resolver.js",
-    "build": "tsc && yarn transpile:sync",
-    "bundle": "esbuild ./lib/resolver.js --bundle --outfile=./lib/bundle.js && yarn clean:build",
-    "clean:build": "mv lib/bundle.js lib/bundle.tmp && rm -rf lib/fixture lib/**.js* lib/**/**.js* && mv lib/bundle.tmp lib/bundle.js"
+    "build": "tsc --project tsconfig.build.json && yarn transpile:sync",
+    "bundle": "esbuild ./lib/resolver.js --bundle --format=cjs --outfile=./lib/bundle.js && yarn clean:build",
+    "clean:build": "mv lib/bundle.js lib/bundle.tmp && rm -rf lib/fixture lib/**.js* lib/**/**.js* && mv lib/bundle.tmp lib/resolver.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.19.3",

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path/posix";
 
-import resolver, { normalizeModuleSpecifier } from "./resolver.js";
+import resolver, { normalizeModuleSpecifier } from "../lib/resolver.js";
 import { ModuleNotFoundError } from "./errors/ModuleNotFound";
 
 const FIXTURE_PATH = path.join(__dirname, "fixture");
