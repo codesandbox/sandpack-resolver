@@ -1,6 +1,6 @@
 /* eslint-disable no-else-return */
 /* eslint-disable no-continue */
-import micromatch from "micromatch";
+import picomatch from "picomatch";
 
 import * as pathUtils from "./utils/path";
 import { ModuleNotFoundError } from "./errors/ModuleNotFound";
@@ -101,7 +101,7 @@ function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
         continue;
       }
 
-      const re = micromatch.makeRe(aliasKey, { capture: true });
+      const re = picomatch.makeRe(aliasKey, { capture: true });
       if (re.test(relativeFilepath)) {
         const val = aliases[aliasKey];
         aliasedPath = relativeFilepath.replace(re, val);

@@ -33,20 +33,18 @@ describe("resolve", () => {
     FIXTURE_PATH,
     new Map()
   );
-  const isFileSync = (p: string) => files.has(p);
-  const isFile = async (p: string) => files.has(p);
+  const isFileSync = (p: string) => {
+    return files.has(p);
+  };
+  const isFile = async (p: string) => isFileSync(p);
   const readFileSync = (p: string) => {
-    if (!files.has(p)) {
+    const file = files.get(p);
+    if (!file) {
       throw new Error("File not found");
     }
-    return files.get(p);
+    return file;
   };
-  const readFile = async (p: string) => {
-    if (!files.has(p)) {
-      throw new Error("File not found");
-    }
-    return files.get(p);
-  };
+  const readFile = async (p: string) => readFileSync(p);
 
   describe("file paths", () => {
     it("should resolve relative file with an extension", () => {

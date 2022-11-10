@@ -12,8 +12,9 @@
     "outDir": "lib",
     "moduleResolution": "node",
     "downlevelIteration": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "declaration": true,
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "fixture"]
+  "exclude": ["node_modules", "lib", "fixture"]
 }
