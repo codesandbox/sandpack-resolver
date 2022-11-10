@@ -1,12 +1,19 @@
 /* eslint-disable no-else-return */
 /* eslint-disable no-continue */
-import gensync from "gensync";
 import micromatch from "micromatch";
 
 import * as pathUtils from "./utils/path";
 import { ModuleNotFoundError } from "./errors/ModuleNotFound";
+import { EMPTY_SHIM } from "./utils/constants";
+
 import { ProcessedPackageJSON, processPackageJSON } from "./utils/pkg-json";
-import { isFile, FnIsFile, FnReadFile, getParentDirectories } from "./utils/fs";
+import {
+  FnIsFile,
+  FnIsFileSync,
+  FnReadFile,
+  FnReadFileSync,
+  getParentDirectories,
+} from "./utils/fs";
 import {
   ProcessedTSConfig,
   processTSConfig,
@@ -19,7 +26,9 @@ export interface IResolveOptionsInput {
   filename: string;
   extensions: string[];
   isFile: FnIsFile;
+  isFileSync: FnIsFileSync;
   readFile: FnReadFile;
+  readFileSync: FnReadFileSync;
   moduleDirectories?: string[];
   resolverCache?: ResolverCache;
 }
@@ -41,7 +50,9 @@ function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
     filename: opts.filename,
     extensions: [...new Set(["", ...opts.extensions])],
     isFile: opts.isFile,
+    isFileSync: opts.isFileSync,
     readFile: opts.readFile,
+    readFileSync: opts.readFileSync,
     moduleDirectories: [...normalizedModuleDirectories],
     resolverCache: opts.resolverCache || new Map(),
   };
@@ -50,36 +61,6 @@ function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
 interface IFoundPackageJSON {
   filepath: string;
   content: ProcessedPackageJSON;
-}
-
-function* loadPackageJSON(
-  filepath: string,
-  opts: IResolveOptions,
-  rootDir: string = "/"
-): Generator<any, IFoundPackageJSON | null, any> {
-  const directories = getParentDirectories(filepath, rootDir);
-  for (const directory of directories) {
-    const packageFilePath = pathUtils.join(directory, "package.json");
-    let packageContent = opts.resolverCache.get(packageFilePath);
-    if (packageContent === undefined) {
-      try {
-        packageContent = processPackageJSON(
-          JSON.parse(yield* opts.readFile(packageFilePath)),
-          pathUtils.dirname(packageFilePath)
-        );
-        opts.resolverCache.set(packageFilePath, packageContent);
-      } catch (err) {
-        opts.resolverCache.set(packageFilePath, false);
-      }
-    }
-    if (packageContent) {
-      return {
-        filepath: packageFilePath,
-        content: packageContent,
-      };
-    }
-  }
-  return null;
 }
 
 function resolveFile(filepath: string, dir: string): string {
@@ -144,20 +125,6 @@ function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
   return aliasedPath || relativeFilepath;
 }
 
-function* resolveModule(
-  moduleSpecifier: string,
-  opts: IResolveOptions
-): Generator<any, string, any> {
-  const dirPath = pathUtils.dirname(opts.filename);
-  const filename = resolveFile(moduleSpecifier, dirPath);
-  const isAbsoluteFilename = filename[0] === "/";
-  const pkgJson = yield* findPackageJSON(
-    isAbsoluteFilename ? filename : opts.filename,
-    opts
-  );
-  return resolveAlias(pkgJson, filename);
-}
-
 const extractPkgSpecifierParts = (
   specifier: string
 ): { pkgName: string; filepath: string } => {
@@ -170,108 +137,6 @@ const extractPkgSpecifierParts = (
   };
 };
 
-function* resolveNodeModule(
-  moduleSpecifier: string,
-  opts: IResolveOptions
-): Generator<any, string, any> {
-  const pkgSpecifierParts = extractPkgSpecifierParts(moduleSpecifier);
-  const directories = getParentDirectories(opts.filename);
-  for (const modulesPath of opts.moduleDirectories) {
-    for (const directory of directories) {
-      const rootDir = pathUtils.join(
-        directory,
-        modulesPath,
-        pkgSpecifierParts.pkgName
-      );
-
-      try {
-        const pkgFilePath = pathUtils.join(rootDir, pkgSpecifierParts.filepath);
-        const pkgJson = yield* loadPackageJSON(pkgFilePath, opts, rootDir);
-        if (pkgJson) {
-          try {
-            return yield* resolver(pkgFilePath, {
-              ...opts,
-              filename: pkgJson.filepath,
-            });
-          } catch (err) {
-            if (!pkgSpecifierParts.filepath) {
-              return yield* resolver(pathUtils.join(pkgFilePath, "index"), {
-                ...opts,
-                filename: pkgJson.filepath,
-              });
-            }
-
-            throw err;
-          }
-        }
-      } catch (err) {
-        // Handle multiple duplicates of a node_module across the tree
-        if (directory.length > 1) {
-          return yield* resolveNodeModule(moduleSpecifier, {
-            ...opts,
-            filename: pathUtils.dirname(directory),
-          });
-        }
-
-        throw err;
-      }
-    }
-  }
-  throw new ModuleNotFoundError(moduleSpecifier, opts.filename);
-}
-
-function* findPackageJSON(
-  filepath: string,
-  opts: IResolveOptions
-): Generator<any, IFoundPackageJSON, any> {
-  let pkg = yield* loadPackageJSON(filepath, opts);
-  if (!pkg) {
-    pkg = yield* loadPackageJSON("/index", opts);
-    if (!pkg) {
-      return {
-        filepath: "/package.json",
-        content: {
-          aliases: {},
-        },
-      };
-    }
-  }
-  return pkg;
-}
-
-function* expandFile(
-  filepath: string,
-  opts: IResolveOptions,
-  expandCount: number = 0
-): Generator<any, string | null, any> {
-  const pkg = yield* findPackageJSON(filepath, opts);
-
-  if (expandCount > 5) {
-    throw new Error("Cyclic alias detected");
-  }
-
-  for (const ext of opts.extensions) {
-    const f = filepath + ext;
-    const aliasedPath = resolveAlias(pkg, f);
-    if (aliasedPath === f) {
-      const exists = yield* isFile(f, opts.isFile);
-      if (exists) {
-        return f;
-      }
-    } else {
-      const expanded = yield* expandFile(
-        aliasedPath,
-        { ...opts, extensions: [""] },
-        expandCount + 1
-      );
-      if (expanded) {
-        return expanded;
-      }
-    }
-  }
-  return null;
-}
-
 export function normalizeModuleSpecifier(specifier: string): string {
   const normalized = pathUtils.simplifySlashes(specifier);
   if (normalized.endsWith("/")) {
@@ -281,101 +146,279 @@ export function normalizeModuleSpecifier(specifier: string): string {
 }
 
 const TS_CONFIG_CACHE_KEY = "__root_tsconfig";
-function* getTSConfig(
-  opts: IResolveOptions
-): Generator<any, ProcessedTSConfig | false, any> {
-  const cachedConfig = opts.resolverCache.get(TS_CONFIG_CACHE_KEY);
-  if (cachedConfig != null) {
-    return cachedConfig;
+class Resolver {
+  // $MakeMeSync
+  async isFile(filepath: string, opts: IResolveOptions): Promise<boolean> {
+    if (filepath === EMPTY_SHIM) {
+      return true;
+    }
+    return opts.isFile(filepath); // $MakeMeSync
   }
 
-  let config: ProcessedTSConfig | false = false;
-  try {
-    const contents = yield* opts.readFile("/tsconfig.json");
-    const processed = processTSConfig(contents);
-    if (processed) {
-      config = processed;
+  // $MakeMeSync
+  async resolveModule(
+    moduleSpecifier: string,
+    opts: IResolveOptions
+  ): Promise<string> {
+    const dirPath = pathUtils.dirname(opts.filename);
+    const filename = resolveFile(moduleSpecifier, dirPath);
+    const isAbsoluteFilename = filename[0] === "/";
+    const pkgJson = await this.findPackageJSON(
+      isAbsoluteFilename ? filename : opts.filename,
+      opts
+    );
+    return resolveAlias(pkgJson, filename);
+  }
+
+  // $MakeMeSync
+  async findPackageJSON(
+    filepath: string,
+    opts: IResolveOptions
+  ): Promise<IFoundPackageJSON> {
+    let pkg = await this.loadPackageJSON(filepath, opts);
+    if (!pkg) {
+      pkg = await this.loadPackageJSON("/index", opts);
+      if (!pkg) {
+        return {
+          filepath: "/package.json",
+          content: {
+            aliases: {},
+          },
+        };
+      }
     }
-  } catch (err) {
+    return pkg;
+  }
+
+  // $MakeMeSync
+  async expandFile(
+    filepath: string,
+    opts: IResolveOptions,
+    expandCount: number = 0
+  ): Promise<string | null> {
+    const pkg = await this.findPackageJSON(filepath, opts);
+
+    if (expandCount > 5) {
+      throw new Error("Cyclic alias detected");
+    }
+
+    for (const ext of opts.extensions) {
+      const f = filepath + ext;
+      const aliasedPath = resolveAlias(pkg, f);
+      if (aliasedPath === f) {
+        const exists = await this.isFile(f, opts);
+        if (exists) {
+          return f;
+        }
+      } else {
+        const expanded = await this.expandFile(
+          aliasedPath,
+          { ...opts, extensions: [""] },
+          expandCount + 1
+        );
+        if (expanded) {
+          return expanded;
+        }
+      }
+    }
+    return null;
+  }
+
+  // $MakeMeSync
+  async getTSConfig(opts: IResolveOptions): Promise<ProcessedTSConfig | false> {
+    const cachedConfig = opts.resolverCache.get(TS_CONFIG_CACHE_KEY);
+    if (cachedConfig != null) {
+      return cachedConfig;
+    }
+
+    let config: ProcessedTSConfig | false = false;
     try {
-      const contents = yield* opts.readFile("/jsconfig.json");
+      const contents = await opts.readFile("/tsconfig.json");
       const processed = processTSConfig(contents);
       if (processed) {
         config = processed;
       }
-    } catch {
-      // do nothing
+    } catch (err) {
+      try {
+        const contents = await opts.readFile("/jsconfig.json");
+        const processed = processTSConfig(contents);
+        if (processed) {
+          config = processed;
+        }
+      } catch {
+        // do nothing
+      }
     }
+    opts.resolverCache.set(TS_CONFIG_CACHE_KEY, config);
+    return config;
   }
-  opts.resolverCache.set(TS_CONFIG_CACHE_KEY, config);
-  return config;
-}
 
-export const resolver = gensync<
-  (
+  // $MakeMeSync
+  async loadPackageJSON(
+    filepath: string,
+    opts: IResolveOptions,
+    rootDir: string = "/"
+  ): Promise<IFoundPackageJSON | null> {
+    const directories = getParentDirectories(filepath, rootDir);
+    for (const directory of directories) {
+      const packageFilePath = pathUtils.join(directory, "package.json");
+      let packageContent = opts.resolverCache.get(packageFilePath);
+      if (packageContent === undefined) {
+        try {
+          const content = await opts.readFile(packageFilePath);
+          packageContent = processPackageJSON(
+            JSON.parse(content),
+            pathUtils.dirname(packageFilePath)
+          );
+          opts.resolverCache.set(packageFilePath, packageContent);
+        } catch (err) {
+          opts.resolverCache.set(packageFilePath, false);
+        }
+      }
+      if (packageContent) {
+        return {
+          filepath: packageFilePath,
+          content: packageContent,
+        };
+      }
+    }
+    return null;
+  }
+
+  // $MakeMeSync
+  async resolveNodeModule(
+    moduleSpecifier: string,
+    opts: IResolveOptions
+  ): Promise<string> {
+    const pkgSpecifierParts = extractPkgSpecifierParts(moduleSpecifier);
+    const directories = getParentDirectories(opts.filename);
+    for (const modulesPath of opts.moduleDirectories) {
+      for (const directory of directories) {
+        const rootDir = pathUtils.join(
+          directory,
+          modulesPath,
+          pkgSpecifierParts.pkgName
+        );
+
+        try {
+          const pkgFilePath = pathUtils.join(
+            rootDir,
+            pkgSpecifierParts.filepath
+          );
+          const pkgJson = await this.loadPackageJSON(
+            pkgFilePath,
+            opts,
+            rootDir
+          );
+          if (pkgJson) {
+            try {
+              return this.resolve(pkgFilePath, {
+                ...opts,
+                filename: pkgJson.filepath,
+              }); // $MakeMeSync
+            } catch (err) {
+              if (!pkgSpecifierParts.filepath) {
+                return this.resolve(pathUtils.join(pkgFilePath, "index"), {
+                  ...opts,
+                  filename: pkgJson.filepath,
+                }); // $MakeMeSync
+              }
+
+              throw err;
+            }
+          }
+        } catch (err) {
+          // Handle multiple duplicates of a node_module across the tree
+          if (directory.length > 1) {
+            return this.resolveNodeModule(moduleSpecifier, {
+              ...opts,
+              filename: pathUtils.dirname(directory),
+            }); // $MakeMeSync
+          }
+
+          throw err;
+        }
+      }
+    }
+    throw new ModuleNotFoundError(moduleSpecifier, opts.filename);
+  }
+
+  // $RemoveMe
+  resolveSync(
     moduleSpecifier: string,
     inputOpts: IResolveOptionsInput,
     skipIndexExpansion?: boolean
-  ) => string
->(function* resolve(
-  moduleSpecifier,
-  inputOpts,
-  skipIndexExpansion = false
-): Generator<any, string, any> {
-  const normalizedSpecifier = normalizeModuleSpecifier(moduleSpecifier);
-  const opts = normalizeResolverOptions(inputOpts);
-  const modulePath = yield* resolveModule(normalizedSpecifier, opts);
+  ) {
+    throw new Error("Not compiled");
+  }
 
-  if (modulePath[0] !== "/") {
-    // This isn't a node module, we can attempt to resolve using a tsconfig/jsconfig
-    if (!opts.filename.includes("/node_modules")) {
-      const parsedTSConfig = yield* getTSConfig(opts);
-      if (parsedTSConfig) {
-        const potentialPaths = getPotentialPathsFromTSConfig(
-          modulePath,
-          parsedTSConfig
-        );
-        for (const potentialPath of potentialPaths) {
-          try {
-            return yield* resolve(potentialPath, opts);
-          } catch {
-            // do nothing, it's probably a node_module in this case
+  // $MakeMeSync
+  async resolve(
+    moduleSpecifier: string,
+    inputOpts: IResolveOptionsInput,
+    skipIndexExpansion: boolean = false
+  ): Promise<string> {
+    const normalizedSpecifier = normalizeModuleSpecifier(moduleSpecifier);
+    const opts = normalizeResolverOptions(inputOpts);
+    const modulePath = await this.resolveModule(normalizedSpecifier, opts);
+
+    if (modulePath[0] !== "/") {
+      // This isn't a node module, we can attempt to resolve using a tsconfig/jsconfig
+      if (!opts.filename.includes("/node_modules")) {
+        const parsedTSConfig = await this.getTSConfig(opts);
+        if (parsedTSConfig) {
+          const potentialPaths = getPotentialPathsFromTSConfig(
+            modulePath,
+            parsedTSConfig
+          );
+          for (const potentialPath of potentialPaths) {
+            try {
+              return this.resolve(potentialPath, opts); // $MakeMeSync
+            } catch {
+              // do nothing, it's probably a node_module in this case
+            }
           }
         }
       }
-    }
 
-    try {
-      return yield* resolveNodeModule(modulePath, opts);
-    } catch (e) {
-      throw new ModuleNotFoundError(normalizedSpecifier, opts.filename);
-    }
-  }
-
-  let foundFile = yield* expandFile(modulePath, opts);
-  if (!foundFile && !skipIndexExpansion) {
-    foundFile = yield* expandFile(pathUtils.join(modulePath, "index"), opts);
-
-    // In case alias adds an extension, we retry the entire resolution with an added /index
-    // This is mostly a hack I guess, but it works for now, so many edge-cases
-    if (!foundFile) {
       try {
-        const parts = moduleSpecifier.split("/");
-        if (!parts.length || !parts[parts.length - 1].startsWith("index")) {
-          foundFile = yield* resolve(moduleSpecifier + "/index", opts, true);
-        }
-      } catch (err) {
-        // should throw ModuleNotFound for original specifier, not new one
+        return this.resolveNodeModule(modulePath, opts); // $MakeMeSync
+      } catch (e) {
+        throw new ModuleNotFoundError(normalizedSpecifier, opts.filename);
       }
     }
+
+    let foundFile = await this.expandFile(modulePath, opts);
+    if (!foundFile && !skipIndexExpansion) {
+      foundFile = await this.expandFile(
+        pathUtils.join(modulePath, "index"),
+        opts
+      );
+
+      // In case alias adds an extension, we retry the entire resolution with an added /index
+      // This is mostly a hack I guess, but it works for now, so many edge-cases
+      if (!foundFile) {
+        try {
+          const parts = moduleSpecifier.split("/");
+          if (!parts.length || !parts[parts.length - 1].startsWith("index")) {
+            foundFile = await this.resolve(
+              moduleSpecifier + "/index",
+              opts,
+              true
+            );
+          }
+        } catch (err) {
+          // should throw ModuleNotFound for original specifier, not new one
+        }
+      }
+    }
+
+    if (!foundFile) {
+      throw new ModuleNotFoundError(modulePath, opts.filename);
+    }
+
+    return foundFile;
   }
+}
 
-  if (!foundFile) {
-    throw new ModuleNotFoundError(modulePath, opts.filename);
-  }
-
-  return foundFile;
-});
-
-export const resolveSync = resolver.sync;
-export const resolveAsync = resolver.async;
+export default new Resolver();

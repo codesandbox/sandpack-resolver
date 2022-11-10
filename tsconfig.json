@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "es2020",
+    "target": "esnext",
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "allowJs": true,
+    "lib": ["es6", "dom"],
+    "rootDir": "src",
+    "outDir": "lib",
+    "moduleResolution": "node",
+    "downlevelIteration": true,
+    "strictNullChecks": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "fixture"]
+}
