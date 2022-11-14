@@ -27,7 +27,7 @@ export function processPackageJSON(
     }
   }
 
-  if (content.browser === false) {
+  if (content.browser === false && mainFields.includes("browser")) {
     aliases[pkgRoot] = EMPTY_SHIM;
   }
 
