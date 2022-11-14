@@ -3,6 +3,10 @@
   "version": "0.0.3",
   "main": "./lib/resolver.js",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codesandbox/sandpack-resolver.git"
+  },
   "files": [
     "lib",
     "LICENSE",
@@ -11,6 +15,7 @@
   ],
   "scripts": {
     "test": "jest",
+    "typecheck": "tsc --noEmit",
     "transpile:sync": "babel ./src/resolver.ts --out-file ./src/resolver.js && cp ./src/resolver.js ./lib/resolver.js",
     "build": "tsc --project tsconfig.build.json && yarn transpile:sync",
     "bundle": "esbuild ./lib/resolver.js --bundle --format=cjs --outfile=./lib/bundle.js && yarn clean:build",

@@ -31,6 +31,19 @@ export interface IResolveOptionsInput {
   readFileSync: FnReadFileSync;
   moduleDirectories?: string[];
   resolverCache?: ResolverCache;
+
+  /**
+   * Fields to resolve, main is `module`, `main`, ...
+   * sorted from high to low priority
+   */
+  mainFields: string[];
+  /**
+   * alias fields are parcel's alias field, browser field, ...
+   * sorted from high to low priority
+   * */
+  aliasFields: string[];
+  /** Export keys from high to low priority */
+  exportKeys: string[];
 }
 
 interface IResolveOptions extends IResolveOptionsInput {
@@ -55,6 +68,9 @@ function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
     readFileSync: opts.readFileSync,
     moduleDirectories: [...normalizedModuleDirectories],
     resolverCache: opts.resolverCache || new Map(),
+    mainFields: opts.mainFields,
+    aliasFields: opts.aliasFields,
+    exportKeys: opts.exportKeys,
   };
 }
 
@@ -268,7 +284,10 @@ class Resolver {
           const content = await opts.readFile(packageFilePath);
           packageContent = processPackageJSON(
             JSON.parse(content),
-            pathUtils.dirname(packageFilePath)
+            pathUtils.dirname(packageFilePath),
+            opts.mainFields,
+            opts.aliasFields,
+            opts.exportKeys
           );
           opts.resolverCache.set(packageFilePath, packageContent);
         } catch (err) {
