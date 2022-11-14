@@ -1,6 +1,6 @@
 {
   "name": "sandpack-resolver",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "./lib/resolver.js",
   "license": "Apache-2.0",
   "repository": {
@@ -20,7 +20,8 @@
     "build": "tsc --project tsconfig.build.json && yarn transpile:sync",
     "bundle": "esbuild ./lib/resolver.js --bundle --format=cjs --outfile=./lib/bundle.js && yarn clean:build",
     "clean:build": "mv lib/bundle.js lib/bundle.tmp && rm -rf lib/fixture lib/**.js* lib/**/**.js* && mv lib/bundle.tmp lib/resolver.js",
-    "format": "prettier --write --with-node-modules \"./**/*.{ts,js,json,md}\""
+    "format": "prettier --write --with-node-modules \"./**/*.{ts,js,json,md}\"",
+    "prepack": "yarn build && yarn bundle && yarn test"
   },
   "devDependencies": {
     "@babel/cli": "^7.19.3",
