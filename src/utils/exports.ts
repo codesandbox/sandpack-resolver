@@ -15,7 +15,8 @@ export function normalizePackageExport(filepath: string, pkgRoot: string): strin
 export function extractPathFromExport(
   exportValue: PackageExportType,
   pkgRoot: string,
-  exportKeys: string[]
+  exportKeys: string[],
+  isExport: boolean,
 ): string | false {
   if (!exportValue) {
     return false;
@@ -26,7 +27,7 @@ export function extractPathFromExport(
   }
 
   if (Array.isArray(exportValue)) {
-    const foundPaths = exportValue.map((v) => extractPathFromExport(v, pkgRoot, exportKeys)).filter(Boolean);
+    const foundPaths = exportValue.map((v) => extractPathFromExport(v, pkgRoot, exportKeys, isExport)).filter(Boolean);
     if (!foundPaths.length) {
       return false;
     }
@@ -40,11 +41,11 @@ export function extractPathFromExport(
         if (typeof exportFilename === 'string') {
           return normalizePackageExport(exportFilename, pkgRoot);
         }
-        return extractPathFromExport(exportFilename, pkgRoot, exportKeys);
+        return extractPathFromExport(exportFilename, pkgRoot, exportKeys, isExport);
       }
     }
     return false;
   }
 
-  throw new Error(`Unsupported export type ${typeof exportValue}`);
+  throw new Error(`Unsupported ${isExport ? 'exports' : 'imports'} type ${typeof exportValue}`);
 }

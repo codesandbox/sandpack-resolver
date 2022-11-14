@@ -21,6 +21,7 @@ export interface IResolveOptionsInput {
   readFileSync: FnReadFileSync;
   moduleDirectories?: string[];
   resolverCache?: ResolverCache;
+  skipTsConfig?: boolean;
 
   /**
    * Fields to resolve, main is `module`, `main`, ...
@@ -37,6 +38,7 @@ export interface IResolveOptionsInput {
 }
 
 interface IResolveOptions extends IResolveOptionsInput {
+  skipTsConfig: boolean;
   moduleDirectories: string[];
   resolverCache: ResolverCache;
 }
@@ -59,6 +61,7 @@ function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
     mainFields: opts.mainFields,
     aliasFields: opts.aliasFields,
     exportKeys: opts.exportKeys,
+    skipTsConfig: !!opts.skipTsConfig,
   };
 }
 
@@ -172,6 +175,7 @@ class Resolver {
           filepath: '/package.json',
           content: {
             aliases: {},
+            imports: {},
           },
         };
       }
@@ -282,13 +286,13 @@ class Resolver {
           const pkgJson = await this.loadPackageJSON(pkgFilePath, opts, rootDir);
           if (pkgJson) {
             try {
-              return this.resolve(pkgFilePath, {
+              return this.internalResolve(pkgFilePath, {
                 ...opts,
                 filename: pkgJson.filepath,
               }); // $MakeMeSync
             } catch (err) {
               if (!pkgSpecifierParts.filepath) {
-                return this.resolve(pathUtils.join(pkgFilePath, 'index'), {
+                return this.internalResolve(pathUtils.join(pkgFilePath, 'index'), {
                   ...opts,
                   filename: pkgJson.filepath,
                 }); // $MakeMeSync
@@ -313,30 +317,24 @@ class Resolver {
     throw new ModuleNotFoundError(moduleSpecifier, opts.filename);
   }
 
-  // $RemoveMe
-  resolveSync(moduleSpecifier: string, inputOpts: IResolveOptionsInput, skipIndexExpansion?: boolean): string {
-    throw new Error('Not compiled');
-  }
-
   // $MakeMeSync
-  async resolve(
+  async internalResolve(
     moduleSpecifier: string,
-    inputOpts: IResolveOptionsInput,
+    opts: IResolveOptions,
     skipIndexExpansion: boolean = false
   ): Promise<string> {
     const normalizedSpecifier = normalizeModuleSpecifier(moduleSpecifier);
-    const opts = normalizeResolverOptions(inputOpts);
     const modulePath = await this.resolveModule(normalizedSpecifier, opts);
 
     if (modulePath[0] !== '/') {
       // This isn't a node module, we can attempt to resolve using a tsconfig/jsconfig
-      if (!opts.filename.includes('/node_modules')) {
+      if (!opts.skipTsConfig && !opts.filename.includes('/node_modules')) {
         const parsedTSConfig = await this.getTSConfig(opts);
         if (parsedTSConfig) {
           const potentialPaths = getPotentialPathsFromTSConfig(modulePath, parsedTSConfig);
           for (const potentialPath of potentialPaths) {
             try {
-              return this.resolve(potentialPath, opts); // $MakeMeSync
+              return this.internalResolve(potentialPath, opts); // $MakeMeSync
             } catch {
               // do nothing, it's probably a node_module in this case
             }
@@ -361,7 +359,7 @@ class Resolver {
         try {
           const parts = moduleSpecifier.split('/');
           if (!parts.length || !parts[parts.length - 1].startsWith('index')) {
-            foundFile = await this.resolve(moduleSpecifier + '/index', opts, true);
+            foundFile = await this.internalResolve(moduleSpecifier + '/index', opts, true);
           }
         } catch (err) {
           // should throw ModuleNotFound for original specifier, not new one
@@ -374,6 +372,17 @@ class Resolver {
     }
 
     return foundFile;
+  }
+
+  // $RemoveMe
+  resolveSync(moduleSpecifier: string, inputOpts: IResolveOptionsInput): string {
+    throw new Error('Not compiled');
+  }
+
+  // $MakeMeSync
+  async resolve(moduleSpecifier: string, inputOpts: IResolveOptionsInput): Promise<string> {
+    const opts = normalizeResolverOptions(inputOpts);
+    return this.internalResolve(moduleSpecifier, opts); // $MakeMeSync
   }
 }
 
