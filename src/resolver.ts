@@ -367,7 +367,7 @@ class Resolver {
     moduleSpecifier: string,
     inputOpts: IResolveOptionsInput,
     skipIndexExpansion?: boolean
-  ) {
+  ): string {
     throw new Error("Not compiled");
   }
 
