@@ -447,6 +447,15 @@ describe('resolve', () => {
       });
       expect(resolved).toBe('/node_modules/package-exports/src/utils/test/index.js');
     });
+
+    it('rollup thingy', () => {
+      const resolved = resolver.resolveSync('rollup', {
+        ...baseConfig,
+        filename: '/node_modules/rollup/dist/es/rollup.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+      });
+      expect(resolved).toBe('/node_modules/rollup/dist/es/rollup.js');
+    });
   });
 
   describe('normalize module specifier', () => {
