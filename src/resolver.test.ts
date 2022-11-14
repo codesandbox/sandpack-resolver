@@ -453,6 +453,9 @@ describe('resolve', () => {
         ...baseConfig,
         filename: '/node_modules/rollup/dist/es/rollup.js',
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        exportKeys: ['node', 'import', 'require', 'default'],
+        mainFields: ['module', 'main'],
+        aliasFields: [],
       });
       expect(resolved).toBe('/node_modules/rollup/dist/es/rollup.js');
     });
