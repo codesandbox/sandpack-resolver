@@ -1,5 +1,5 @@
-import stripJsonComments from "strip-json-comments";
-import * as pathUtils from "./path";
+import stripJsonComments from 'strip-json-comments';
+import * as pathUtils from './path';
 
 export interface ProcessedTSConfig {
   baseUrl: string;
@@ -9,30 +9,27 @@ export interface ProcessedTSConfig {
 export function processTSConfig(content: string): ProcessedTSConfig | null {
   const parsed = JSON.parse(stripJsonComments(content))?.compilerOptions || {};
   if (parsed.baseUrl) {
-    const paths: ProcessedTSConfig["paths"] = {};
+    const paths: ProcessedTSConfig['paths'] = {};
     if (parsed.paths) {
       for (const p of Object.keys(parsed.paths)) {
         paths[p] = parsed.paths[p].map((val: string) => {
-          return pathUtils.join("/", parsed.baseUrl, val).replace(/\*/g, "");
+          return pathUtils.join('/', parsed.baseUrl, val).replace(/\*/g, '');
         });
       }
     }
 
     return {
-      baseUrl: pathUtils.join("/", parsed.baseUrl),
+      baseUrl: pathUtils.join('/', parsed.baseUrl),
       paths,
     };
   }
   return null;
 }
 
-export function getPotentialPathsFromTSConfig(
-  moduleSpecifier: string,
-  config: ProcessedTSConfig
-): string[] {
+export function getPotentialPathsFromTSConfig(moduleSpecifier: string, config: ProcessedTSConfig): string[] {
   const res = [];
   for (const p of Object.keys(config.paths)) {
-    if (p.endsWith("*")) {
+    if (p.endsWith('*')) {
       const prefix = p.substring(0, p.length - 1);
       if (moduleSpecifier.startsWith(prefix)) {
         const suffix = moduleSpecifier.substr(prefix.length);

@@ -1,8 +1,8 @@
 module.exports = {
   transform: {
-    "^.+\\.(t|j)sx?$": ["@swc-node/jest"],
+    '^.+\\.(t|j)sx?$': ['@swc-node/jest'],
   },
   modulePathIgnorePatterns: ['lib', 'fixture'],
-  testMatch: ["**/*.test.ts"],
+  testMatch: ['**/*.test.ts'],
   transformIgnorePatterns: [],
 };

@@ -1,4 +1,4 @@
-const MAKE_ME_SYNC = "$RemoveMe";
+const MAKE_ME_SYNC = '$RemoveMe';
 
 const shouldRemove = (comments) => {
   return (
@@ -11,7 +11,7 @@ const shouldRemove = (comments) => {
 
 module.exports = function ({}) {
   return {
-    name: "remove",
+    name: 'remove',
 
     visitor: {
       ClassMethod(path) {
