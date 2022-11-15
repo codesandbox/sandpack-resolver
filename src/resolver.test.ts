@@ -7,9 +7,9 @@ import { ModuleNotFoundError } from './errors/ModuleNotFound';
 const FIXTURE_PATH = path.join(__dirname, 'fixture');
 
 // alias/exports/main keys, sorted from high to low priority
-const MAIN_PKG_FIELDS = ['module', 'browser', 'main', 'jsnext:main'];
-const PKG_ALIAS_FIELDS = ['browser', 'alias'];
-const EXPORTS_KEYS = ['browser', 'development', 'default', 'require', 'import'];
+const MAIN_KEYS = ['module', 'browser', 'main', 'jsnext:main'];
+const ALIAS_KEYS = ['browser', 'alias'];
+const ENV_KEYS = ['browser', 'development', 'default', 'require', 'import'];
 
 const readFiles = (dir: string, rootPath: string, files: Map<string, string>) => {
   const entries = fs.readdirSync(dir);
@@ -44,9 +44,9 @@ describe('resolve', () => {
     isFileSync,
     readFile,
     readFileSync,
-    mainFields: MAIN_PKG_FIELDS,
-    aliasFields: PKG_ALIAS_FIELDS,
-    exportKeys: EXPORTS_KEYS,
+    mainFields: MAIN_KEYS,
+    aliasFields: ALIAS_KEYS,
+    environmentKeys: ENV_KEYS,
   };
 
   describe('file paths', () => {
@@ -453,7 +453,7 @@ describe('resolve', () => {
         ...baseConfig,
         filename: '/node_modules/rollup/dist/es/rollup.js',
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
-        exportKeys: ['node', 'import', 'require', 'default'],
+        environmentKeys: ['node', 'import', 'require', 'default'],
         mainFields: ['module', 'main'],
         aliasFields: [],
       });
@@ -467,7 +467,7 @@ describe('resolve', () => {
         ...baseConfig,
         filename: '/node_modules/chalk/index.js',
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
-        exportKeys: ['node', 'import', 'require', 'default'],
+        environmentKeys: ['node', 'import', 'require', 'default'],
         mainFields: ['module', 'main'],
         aliasFields: [],
       });
@@ -479,7 +479,7 @@ describe('resolve', () => {
         ...baseConfig,
         filename: '/node_modules/imports-glob/index.js',
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
-        exportKeys: ['node', 'import', 'require', 'default'],
+        environmentKeys: ['node', 'import', 'require', 'default'],
         mainFields: ['module', 'main'],
         aliasFields: [],
       });

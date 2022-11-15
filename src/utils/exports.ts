@@ -11,7 +11,7 @@ type PackageExportObj = {
 export function extractPathFromExport(
   exportValue: PackageExportType,
   pkgRoot: string,
-  exportKeys: string[]
+  environmentKeys: string[]
 ): string | false {
   if (!exportValue) {
     return false;
@@ -22,7 +22,7 @@ export function extractPathFromExport(
   }
 
   if (Array.isArray(exportValue)) {
-    const foundPaths = exportValue.map((v) => extractPathFromExport(v, pkgRoot, exportKeys)).filter(Boolean);
+    const foundPaths = exportValue.map((v) => extractPathFromExport(v, pkgRoot, environmentKeys)).filter(Boolean);
     if (!foundPaths.length) {
       return false;
     }
@@ -30,13 +30,13 @@ export function extractPathFromExport(
   }
 
   if (typeof exportValue === 'object') {
-    for (const key of exportKeys) {
+    for (const key of environmentKeys) {
       const exportFilename = exportValue[key];
       if (exportFilename !== undefined) {
         if (typeof exportFilename === 'string') {
           return normalizeAliasFilePath(exportFilename, pkgRoot);
         }
-        return extractPathFromExport(exportFilename, pkgRoot, exportKeys);
+        return extractPathFromExport(exportFilename, pkgRoot, environmentKeys);
       }
     }
     return false;

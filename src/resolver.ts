@@ -32,8 +32,11 @@ export interface IResolveOptionsInput {
    * sorted from high to low priority
    * */
   aliasFields: string[];
-  /** Export keys from high to low priority */
-  exportKeys: string[];
+  /**
+   * Environment keys from high to low priority
+   * Used for exports and imports field in pkg.json
+   */
+  environmentKeys: string[];
 }
 
 interface IResolveOptions extends IResolveOptionsInput {
@@ -59,7 +62,7 @@ function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
     resolverCache: opts.resolverCache || new Map(),
     mainFields: opts.mainFields,
     aliasFields: opts.aliasFields,
-    exportKeys: opts.exportKeys,
+    environmentKeys: opts.environmentKeys,
     skipTsConfig: !!opts.skipTsConfig,
   };
 }
@@ -130,7 +133,6 @@ function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
         continue;
       }
 
-      console.log({ aliasKey, aliasValue, relativeFilepath });
       const match = replaceGlob(aliasKey, aliasValue, relativeFilepath);
       if (match) {
         aliasedPath = match;
@@ -278,7 +280,7 @@ class Resolver {
             pathUtils.dirname(packageFilePath),
             opts.mainFields,
             opts.aliasFields,
-            opts.exportKeys
+            opts.environmentKeys
           );
           opts.resolverCache.set(packageFilePath, packageContent);
         } catch (err) {

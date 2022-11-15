@@ -10,12 +10,16 @@ export interface ProcessedPackageJSON {
   imports: AliasesDict;
 }
 
+function sortDescending(a: string, b: string) {
+  return b.length - a.length;
+}
+
 export function processPackageJSON(
   content: any,
   pkgRoot: string,
   mainFields: string[],
   aliasFields: string[],
-  exportKeys: string[]
+  environmentKeys: string[]
 ): ProcessedPackageJSON {
   if (!content || typeof content !== 'object') {
     return { aliases: {}, imports: {} };
@@ -36,7 +40,7 @@ export function processPackageJSON(
   for (const aliasFieldKey of aliasFields) {
     const aliasField = content[aliasFieldKey];
     if (typeof aliasField === 'object') {
-      for (const key of Object.keys(aliasField)) {
+      for (const key of Object.keys(aliasField).sort(sortDescending)) {
         const val = aliasField[key] || EMPTY_SHIM;
         const normalizedKey = normalizeAliasFilePath(key, pkgRoot, false);
         const normalizedValue = normalizeAliasFilePath(val, pkgRoot, false);
@@ -54,8 +58,8 @@ export function processPackageJSON(
     if (typeof content.exports === 'string') {
       aliases[pkgRoot] = normalizeAliasFilePath(content.exports, pkgRoot);
     } else if (typeof content.exports === 'object') {
-      for (const exportKey of Object.keys(content.exports)) {
-        const exportValue = extractPathFromExport(content.exports[exportKey], pkgRoot, exportKeys);
+      for (const exportKey of Object.keys(content.exports).sort(sortDescending)) {
+        const exportValue = extractPathFromExport(content.exports[exportKey], pkgRoot, environmentKeys);
         const normalizedKey = normalizeAliasFilePath(exportKey, pkgRoot);
         aliases[normalizedKey] = exportValue || EMPTY_SHIM;
       }
@@ -66,9 +70,9 @@ export function processPackageJSON(
   const imports: AliasesDict = {};
   if (content.imports) {
     if (typeof content.imports === 'object') {
-      for (const exportKey of Object.keys(content.imports)) {
-        const exportValue = extractSpecifierFromImport(content.imports[exportKey], pkgRoot, exportKeys);
-        imports[exportKey] = exportValue || EMPTY_SHIM;
+      for (const importKey of Object.keys(content.imports).sort(sortDescending)) {
+        const value = extractSpecifierFromImport(content.imports[importKey], pkgRoot, environmentKeys);
+        imports[importKey] = value || EMPTY_SHIM;
       }
     }
   }
