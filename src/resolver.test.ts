@@ -472,7 +472,7 @@ describe('resolve', () => {
         mainFields: ['module', 'main'],
         aliasFields: [],
       });
-      expect(resolved).toBe('/node_modules/rollup/dist/es/rollup.js');
+      expect(resolved).toBe('/node_modules/chalk/source/vendor/ansi-styles/index.js');
     });
   });
 

@@ -1,6 +1,7 @@
 import { normalizeAliasFilePath } from './alias';
 import { extractPathFromExport } from './exports';
 import { EMPTY_SHIM } from './constants';
+import { extractSpecifierFromImport } from './imports';
 
 type AliasesDict = { [key: string]: string };
 
@@ -54,7 +55,7 @@ export function processPackageJSON(
       aliases[pkgRoot] = normalizeAliasFilePath(content.exports, pkgRoot);
     } else if (typeof content.exports === 'object') {
       for (const exportKey of Object.keys(content.exports)) {
-        const exportValue = extractPathFromExport(content.exports[exportKey], pkgRoot, exportKeys, true);
+        const exportValue = extractPathFromExport(content.exports[exportKey], pkgRoot, exportKeys);
         const normalizedKey = normalizeAliasFilePath(exportKey, pkgRoot);
         aliases[normalizedKey] = exportValue || EMPTY_SHIM;
       }
@@ -64,13 +65,10 @@ export function processPackageJSON(
   // load imports
   const imports: AliasesDict = {};
   if (content.imports) {
-    if (typeof content.imports === 'string') {
-      imports[pkgRoot] = normalizeAliasFilePath(content.imports, pkgRoot);
-    } else if (typeof content.imports === 'object') {
+    if (typeof content.imports === 'object') {
       for (const exportKey of Object.keys(content.imports)) {
-        const exportValue = extractPathFromExport(content.imports[exportKey], pkgRoot, exportKeys, false);
-        const normalizedKey = normalizeAliasFilePath(exportKey, pkgRoot);
-        imports[normalizedKey] = exportValue || EMPTY_SHIM;
+        const exportValue = extractSpecifierFromImport(content.imports[exportKey], pkgRoot, exportKeys);
+        imports[exportKey] = exportValue || EMPTY_SHIM;
       }
     }
   }
