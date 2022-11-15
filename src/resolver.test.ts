@@ -7,9 +7,9 @@ import { ModuleNotFoundError } from './errors/ModuleNotFound';
 const FIXTURE_PATH = path.join(__dirname, 'fixture');
 
 // alias/exports/main keys, sorted from high to low priority
-const MAIN_PKG_FIELDS = ['module', 'browser', 'main', 'jsnext:main'];
-const PKG_ALIAS_FIELDS = ['browser', 'alias'];
-const EXPORTS_KEYS = ['browser', 'development', 'default', 'require', 'import'];
+const MAIN_KEYS = ['module', 'browser', 'main', 'jsnext:main'];
+const ALIAS_KEYS = ['browser', 'alias'];
+const ENV_KEYS = ['browser', 'development', 'default', 'require', 'import'];
 
 const readFiles = (dir: string, rootPath: string, files: Map<string, string>) => {
   const entries = fs.readdirSync(dir);
@@ -44,9 +44,9 @@ describe('resolve', () => {
     isFileSync,
     readFile,
     readFileSync,
-    mainFields: MAIN_PKG_FIELDS,
-    aliasFields: PKG_ALIAS_FIELDS,
-    exportKeys: EXPORTS_KEYS,
+    mainFields: MAIN_KEYS,
+    aliasFields: ALIAS_KEYS,
+    environmentKeys: ENV_KEYS,
   };
 
   describe('file paths', () => {
@@ -364,7 +364,7 @@ describe('resolve', () => {
     });
   });
 
-  describe('package#exports', () => {
+  describe.only('package#exports', () => {
     it('should alias package.exports root export', () => {
       const resolved = resolver.resolveSync('package-exports', {
         ...baseConfig,
@@ -393,7 +393,7 @@ describe('resolve', () => {
       expect(resolved).toBe('/node_modules/package-exports/src/components/a.js');
     });
 
-    it('should alias package.exports subdirectory globs', () => {
+    it.only('should alias package.exports subdirectory globs', () => {
       const resolved = resolver.resolveSync('@zendesk/laika/esm/laika', {
         ...baseConfig,
         filename: '/index.tsx',
@@ -453,11 +453,37 @@ describe('resolve', () => {
         ...baseConfig,
         filename: '/node_modules/rollup/dist/es/rollup.js',
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
-        exportKeys: ['node', 'import', 'require', 'default'],
+        environmentKeys: ['node', 'import', 'require', 'default'],
         mainFields: ['module', 'main'],
         aliasFields: [],
       });
       expect(resolved).toBe('/node_modules/rollup/dist/es/rollup.js');
+    });
+  });
+
+  describe('package#imports', () => {
+    it('chalk', () => {
+      const resolved = resolver.resolveSync('#ansi-styles', {
+        ...baseConfig,
+        filename: '/node_modules/chalk/index.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        environmentKeys: ['node', 'import', 'require', 'default'],
+        mainFields: ['module', 'main'],
+        aliasFields: [],
+      });
+      expect(resolved).toBe('/node_modules/chalk/source/vendor/ansi-styles/index.js');
+    });
+
+    it('imports glob', () => {
+      const resolved = resolver.resolveSync('#test/a', {
+        ...baseConfig,
+        filename: '/node_modules/imports-glob/index.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        environmentKeys: ['node', 'import', 'require', 'default'],
+        mainFields: ['module', 'main'],
+        aliasFields: [],
+      });
+      expect(resolved).toBe('/node_modules/imports-glob/source/vendor/test/a.js');
     });
   });
 

@@ -8,26 +8,21 @@ type PackageExportObj = {
   [key: string]: string | null | false | PackageExportType;
 };
 
-export function normalizePackageExport(filepath: string, pkgRoot: string): string {
-  return normalizeAliasFilePath(filepath.replace(/\*/g, '$1'), pkgRoot);
-}
-
 export function extractPathFromExport(
   exportValue: PackageExportType,
   pkgRoot: string,
-  exportKeys: string[],
-  isExport: boolean,
+  environmentKeys: string[]
 ): string | false {
   if (!exportValue) {
     return false;
   }
 
   if (typeof exportValue === 'string') {
-    return normalizePackageExport(exportValue, pkgRoot);
+    return normalizeAliasFilePath(exportValue, pkgRoot);
   }
 
   if (Array.isArray(exportValue)) {
-    const foundPaths = exportValue.map((v) => extractPathFromExport(v, pkgRoot, exportKeys, isExport)).filter(Boolean);
+    const foundPaths = exportValue.map((v) => extractPathFromExport(v, pkgRoot, environmentKeys)).filter(Boolean);
     if (!foundPaths.length) {
       return false;
     }
@@ -35,17 +30,17 @@ export function extractPathFromExport(
   }
 
   if (typeof exportValue === 'object') {
-    for (const key of exportKeys) {
+    for (const key of environmentKeys) {
       const exportFilename = exportValue[key];
       if (exportFilename !== undefined) {
         if (typeof exportFilename === 'string') {
-          return normalizePackageExport(exportFilename, pkgRoot);
+          return normalizeAliasFilePath(exportFilename, pkgRoot);
         }
-        return extractPathFromExport(exportFilename, pkgRoot, exportKeys, isExport);
+        return extractPathFromExport(exportFilename, pkgRoot, environmentKeys);
       }
     }
     return false;
   }
 
-  throw new Error(`Unsupported ${isExport ? 'exports' : 'imports'} type ${typeof exportValue}`);
+  throw new Error(`Unsupported exports type ${typeof exportValue}`);
 }

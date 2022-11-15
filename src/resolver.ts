@@ -1,10 +1,9 @@
 /* eslint-disable no-else-return */
 /* eslint-disable no-continue */
-import picomatch from 'picomatch';
-
 import * as pathUtils from './utils/path';
 import { ModuleNotFoundError } from './errors/ModuleNotFound';
 import { EMPTY_SHIM } from './utils/constants';
+import { replaceGlob } from './utils/glob';
 
 import { ProcessedPackageJSON, processPackageJSON } from './utils/pkg-json';
 import { FnIsFile, FnIsFileSync, FnReadFile, FnReadFileSync, getParentDirectories } from './utils/fs';
@@ -33,8 +32,11 @@ export interface IResolveOptionsInput {
    * sorted from high to low priority
    * */
   aliasFields: string[];
-  /** Export keys from high to low priority */
-  exportKeys: string[];
+  /**
+   * Environment keys from high to low priority
+   * Used for exports and imports field in pkg.json
+   */
+  environmentKeys: string[];
 }
 
 interface IResolveOptions extends IResolveOptionsInput {
@@ -60,7 +62,7 @@ function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
     resolverCache: opts.resolverCache || new Map(),
     mainFields: opts.mainFields,
     aliasFields: opts.aliasFields,
-    exportKeys: opts.exportKeys,
+    environmentKeys: opts.environmentKeys,
     skipTsConfig: !!opts.skipTsConfig,
   };
 }
@@ -82,6 +84,29 @@ function resolveFile(filepath: string, dir: string): string {
   }
 }
 
+function resolvePkgImport(specifier: string, pkgJson: IFoundPackageJSON): string {
+  const pkgImports = pkgJson.content.imports;
+  if (!pkgImports) return specifier;
+
+  if (pkgImports[specifier]) {
+    return pkgImports[specifier];
+  }
+
+  for (const [importKey, importValue] of Object.entries(pkgImports)) {
+    if (!importKey.includes('*')) {
+      continue;
+    }
+
+    const match = replaceGlob(importKey, importValue, specifier);
+    if (match) {
+      return match;
+    }
+  }
+
+  return specifier;
+}
+
+// This might be interesting for improving exports support: https://github.com/lukeed/resolve.exports
 function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
   const aliases = pkgJson.content.aliases;
 
@@ -103,15 +128,14 @@ function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
       continue;
     }
 
-    for (const aliasKey of Object.keys(aliases)) {
+    for (const [aliasKey, aliasValue] of Object.entries(aliases)) {
       if (!aliasKey.includes('*')) {
         continue;
       }
 
-      const re = picomatch.makeRe(aliasKey, { capture: true });
-      if (re.test(relativeFilepath)) {
-        const val = aliases[aliasKey];
-        aliasedPath = relativeFilepath.replace(re, val);
+      const match = replaceGlob(aliasKey, aliasValue, relativeFilepath);
+      if (match) {
+        aliasedPath = match;
         if (aliasedPath.startsWith(relativeFilepath)) {
           const newAddition = aliasedPath.substr(relativeFilepath.length);
           if (!newAddition.includes('/') && relativeFilepath.endsWith(newAddition)) {
@@ -256,7 +280,7 @@ class Resolver {
             pathUtils.dirname(packageFilePath),
             opts.mainFields,
             opts.aliasFields,
-            opts.exportKeys
+            opts.environmentKeys
           );
           opts.resolverCache.set(packageFilePath, packageContent);
         } catch (err) {
@@ -374,6 +398,17 @@ class Resolver {
     return foundFile;
   }
 
+  // $MakeMeSync
+  async resolvePkgImports(specifier: string, opts: IResolveOptions): Promise<string> {
+    // Imports always have the `#` prefix
+    if (specifier[0] !== '#') {
+      return specifier;
+    }
+
+    const pkgJson = await this.findPackageJSON(opts.filename, opts);
+    return resolvePkgImport(specifier, pkgJson);
+  }
+
   // $RemoveMe
   resolveSync(moduleSpecifier: string, inputOpts: IResolveOptionsInput): string {
     throw new Error('Not compiled');
@@ -382,7 +417,8 @@ class Resolver {
   // $MakeMeSync
   async resolve(moduleSpecifier: string, inputOpts: IResolveOptionsInput): Promise<string> {
     const opts = normalizeResolverOptions(inputOpts);
-    return this.internalResolve(moduleSpecifier, opts); // $MakeMeSync
+    const specifier = await this.resolvePkgImports(moduleSpecifier, opts);
+    return this.internalResolve(specifier, opts); // $MakeMeSync
   }
 }
 

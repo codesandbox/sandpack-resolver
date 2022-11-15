@@ -7,8 +7,7 @@
     "something": "./nested/test.js",
     "aliasedfolder": "./nested",
     "aliasedabsolute": "/nested",
-    "foo/bar": "./bar.js",
-    "glob/*/*": "./nested/$2"
+    "foo/bar": "./bar.js"
   },
   "exports": {
     "a-custom-export": "./nested"
