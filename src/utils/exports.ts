@@ -8,10 +8,6 @@ type PackageExportObj = {
   [key: string]: string | null | false | PackageExportType;
 };
 
-export function normalizePackageExport(filepath: string, pkgRoot: string): string {
-  return normalizeAliasFilePath(filepath.replace(/\*/g, '$1'), pkgRoot);
-}
-
 export function extractPathFromExport(
   exportValue: PackageExportType,
   pkgRoot: string,
@@ -22,7 +18,7 @@ export function extractPathFromExport(
   }
 
   if (typeof exportValue === 'string') {
-    return normalizePackageExport(exportValue, pkgRoot);
+    return normalizeAliasFilePath(exportValue, pkgRoot);
   }
 
   if (Array.isArray(exportValue)) {
@@ -38,7 +34,7 @@ export function extractPathFromExport(
       const exportFilename = exportValue[key];
       if (exportFilename !== undefined) {
         if (typeof exportFilename === 'string') {
-          return normalizePackageExport(exportFilename, pkgRoot);
+          return normalizeAliasFilePath(exportFilename, pkgRoot);
         }
         return extractPathFromExport(exportFilename, pkgRoot, exportKeys);
       }

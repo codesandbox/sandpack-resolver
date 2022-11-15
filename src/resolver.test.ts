@@ -364,7 +364,7 @@ describe('resolve', () => {
     });
   });
 
-  describe('package#exports', () => {
+  describe.only('package#exports', () => {
     it('should alias package.exports root export', () => {
       const resolved = resolver.resolveSync('package-exports', {
         ...baseConfig,
@@ -393,7 +393,7 @@ describe('resolve', () => {
       expect(resolved).toBe('/node_modules/package-exports/src/components/a.js');
     });
 
-    it('should alias package.exports subdirectory globs', () => {
+    it.only('should alias package.exports subdirectory globs', () => {
       const resolved = resolver.resolveSync('@zendesk/laika/esm/laika', {
         ...baseConfig,
         filename: '/index.tsx',
@@ -463,7 +463,6 @@ describe('resolve', () => {
 
   describe('package#imports', () => {
     it('chalk', () => {
-      // import ansiStyles from '#ansi-styles';
       const resolved = resolver.resolveSync('#ansi-styles', {
         ...baseConfig,
         filename: '/node_modules/chalk/index.js',
@@ -473,6 +472,18 @@ describe('resolve', () => {
         aliasFields: [],
       });
       expect(resolved).toBe('/node_modules/chalk/source/vendor/ansi-styles/index.js');
+    });
+
+    it('imports glob', () => {
+      const resolved = resolver.resolveSync('#test/a', {
+        ...baseConfig,
+        filename: '/node_modules/imports-glob/index.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        exportKeys: ['node', 'import', 'require', 'default'],
+        mainFields: ['module', 'main'],
+        aliasFields: [],
+      });
+      expect(resolved).toBe('/node_modules/imports-glob/source/vendor/test/a.js');
     });
   });
 

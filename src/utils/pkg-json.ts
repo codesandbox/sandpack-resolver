@@ -40,10 +40,10 @@ export function processPackageJSON(
         const val = aliasField[key] || EMPTY_SHIM;
         const normalizedKey = normalizeAliasFilePath(key, pkgRoot, false);
         const normalizedValue = normalizeAliasFilePath(val, pkgRoot, false);
-        aliases[normalizedKey] = normalizedValue;
+        aliases[normalizedKey] = normalizedValue.replace(/\$1/g, '*');
 
         if (aliasFieldKey !== 'browser') {
-          aliases[`${normalizedKey}/*`] = `${normalizedValue}/$1`;
+          aliases[`${normalizedKey}/*`] = `${normalizedValue}/*`;
         }
       }
     }

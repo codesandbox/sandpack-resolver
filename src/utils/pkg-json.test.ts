@@ -10,7 +10,7 @@ const MAIN_PKG_FIELDS = ['module', 'browser', 'main', 'jsnext:main'];
 const PKG_ALIAS_FIELDS = ['browser', 'alias'];
 const EXPORTS_KEYS = ['browser', 'development', 'default', 'require', 'import'];
 
-describe('process package.json', () => {
+describe.skip('process package.json', () => {
   it('Should correctly process pkg.exports from @babel/runtime', () => {
     const content = JSON.parse(
       fs.readFileSync(path.join(FIXTURE_PATH, 'node_modules/@babel/runtime/package.json'), 'utf-8')

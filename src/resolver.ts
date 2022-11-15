@@ -1,10 +1,9 @@
 /* eslint-disable no-else-return */
 /* eslint-disable no-continue */
-import picomatch from 'picomatch';
-
 import * as pathUtils from './utils/path';
 import { ModuleNotFoundError } from './errors/ModuleNotFound';
 import { EMPTY_SHIM } from './utils/constants';
+import { replaceGlob } from './utils/glob';
 
 import { ProcessedPackageJSON, processPackageJSON } from './utils/pkg-json';
 import { FnIsFile, FnIsFileSync, FnReadFile, FnReadFileSync, getParentDirectories } from './utils/fs';
@@ -95,9 +94,9 @@ function resolvePkgImport(specifier: string, pkgJson: IFoundPackageJSON): string
       continue;
     }
 
-    const re = picomatch.makeRe(importKey, { capture: true });
-    if (re.test(specifier)) {
-      return specifier.replace(re, importValue);
+    const match = replaceGlob(importKey, importValue, specifier);
+    if (match) {
+      return match;
     }
   }
 
@@ -126,15 +125,15 @@ function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
       continue;
     }
 
-    for (const aliasKey of Object.keys(aliases)) {
+    for (const [aliasKey, aliasValue] of Object.entries(aliases)) {
       if (!aliasKey.includes('*')) {
         continue;
       }
 
-      const re = picomatch.makeRe(aliasKey, { capture: true });
-      if (re.test(relativeFilepath)) {
-        const val = aliases[aliasKey];
-        aliasedPath = relativeFilepath.replace(re, val);
+      console.log({ aliasKey, aliasValue, relativeFilepath });
+      const match = replaceGlob(aliasKey, aliasValue, relativeFilepath);
+      if (match) {
+        aliasedPath = match;
         if (aliasedPath.startsWith(relativeFilepath)) {
           const newAddition = aliasedPath.substr(relativeFilepath.length);
           if (!newAddition.includes('/') && relativeFilepath.endsWith(newAddition)) {
