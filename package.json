@@ -1,6 +1,6 @@
 {
   "name": "sandpack-resolver",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "main": "./lib/resolver.js",
   "license": "Apache-2.0",
   "repository": {
