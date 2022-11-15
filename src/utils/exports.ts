@@ -16,7 +16,7 @@ export function extractPathFromExport(
   exportValue: PackageExportType,
   pkgRoot: string,
   exportKeys: string[],
-  isExport: boolean,
+  isExport: boolean
 ): string | false {
   if (!exportValue) {
     return false;

@@ -461,6 +461,21 @@ describe('resolve', () => {
     });
   });
 
+  describe('package#imports', () => {
+    it('chalk', () => {
+      // import ansiStyles from '#ansi-styles';
+      const resolved = resolver.resolveSync('#ansi-styles', {
+        ...baseConfig,
+        filename: '/node_modules/chalk/index.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        exportKeys: ['node', 'import', 'require', 'default'],
+        mainFields: ['module', 'main'],
+        aliasFields: [],
+      });
+      expect(resolved).toBe('/node_modules/rollup/dist/es/rollup.js');
+    });
+  });
+
   describe('normalize module specifier', () => {
     it('normalize module specifier', () => {
       expect(normalizeModuleSpecifier('/test//fluent-d')).toBe('/test/fluent-d');
