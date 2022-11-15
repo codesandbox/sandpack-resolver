@@ -405,7 +405,6 @@ class Resolver {
     }
 
     const pkgJson = await this.findPackageJSON(opts.filename, opts);
-    console.log('resolvePkgImports', specifier, pkgJson.content.imports);
     return resolvePkgImport(specifier, pkgJson);
   }
 
