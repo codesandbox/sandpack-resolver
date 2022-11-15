@@ -364,7 +364,7 @@ describe('resolve', () => {
     });
   });
 
-  describe.only('package#exports', () => {
+  describe('package#exports', () => {
     it('should alias package.exports root export', () => {
       const resolved = resolver.resolveSync('package-exports', {
         ...baseConfig,
@@ -393,7 +393,7 @@ describe('resolve', () => {
       expect(resolved).toBe('/node_modules/package-exports/src/components/a.js');
     });
 
-    it.only('should alias package.exports subdirectory globs', () => {
+    it('should alias package.exports subdirectory globs', () => {
       const resolved = resolver.resolveSync('@zendesk/laika/esm/laika', {
         ...baseConfig,
         filename: '/index.tsx',
@@ -466,6 +466,18 @@ describe('resolve', () => {
       const resolved = resolver.resolveSync('#ansi-styles', {
         ...baseConfig,
         filename: '/node_modules/chalk/index.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        environmentKeys: ['node', 'import', 'require', 'default'],
+        mainFields: ['module', 'main'],
+        aliasFields: [],
+      });
+      expect(resolved).toBe('/node_modules/chalk/source/vendor/ansi-styles/index.js');
+    });
+
+    it('chalk from sub-dir', () => {
+      const resolved = resolver.resolveSync('#ansi-styles', {
+        ...baseConfig,
+        filename: '/node_modules/chalk/source/index.js',
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
         environmentKeys: ['node', 'import', 'require', 'default'],
         mainFields: ['module', 'main'],

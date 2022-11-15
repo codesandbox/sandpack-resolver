@@ -406,7 +406,11 @@ class Resolver {
     }
 
     const pkgJson = await this.findPackageJSON(opts.filename, opts);
-    return resolvePkgImport(specifier, pkgJson);
+    const resolved = resolvePkgImport(specifier, pkgJson);
+    if (resolved !== specifier) {
+      opts.filename = pkgJson.filepath;
+    }
+    return resolved;
   }
 
   // $RemoveMe
