@@ -211,7 +211,7 @@ class Resolver {
   async expandFile(filepath: string, opts: IResolveOptions, expandCount: number = 0): Promise<string | null> {
     const pkg = await this.findPackageJSON(filepath, opts);
 
-    if (expandCount > 5) {
+    if (expandCount > 10) {
       throw new Error('Cyclic alias detected');
     }
 
