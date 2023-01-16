@@ -125,7 +125,7 @@ export function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): stri
     // Check for direct matches
     if (aliases[relativeFilepath]) {
       aliasedPath = aliases[relativeFilepath];
-      break;
+      continue;
     }
 
     for (const [aliasKey, aliasValue] of Object.entries(aliases)) {

@@ -69,7 +69,7 @@ describe('resolve', () => {
       expect(resolved).toBe('/node_modules/@nuxt/ui-templates/dist/index.mjs');
     });
 
-    it.only('fooo', () => {
+    it('resolves to dist alias', () => {
       const resolved = resolveAlias(
         {
           filepath: '/node_modules/@nuxt/ui-templates/package.json',
