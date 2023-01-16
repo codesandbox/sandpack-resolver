@@ -107,7 +107,7 @@ function resolvePkgImport(specifier: string, pkgJson: IFoundPackageJSON): string
 }
 
 // This might be interesting for improving exports support: https://github.com/lukeed/resolve.exports
-function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
+export function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
   const aliases = pkgJson.content.aliases;
 
   let relativeFilepath = filename;
@@ -125,7 +125,7 @@ function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): string {
     // Check for direct matches
     if (aliases[relativeFilepath]) {
       aliasedPath = aliases[relativeFilepath];
-      continue;
+      break;
     }
 
     for (const [aliasKey, aliasValue] of Object.entries(aliases)) {
@@ -211,7 +211,7 @@ class Resolver {
   async expandFile(filepath: string, opts: IResolveOptions, expandCount: number = 0): Promise<string | null> {
     const pkg = await this.findPackageJSON(filepath, opts);
 
-    if (expandCount > 10) {
+    if (expandCount > 5) {
       throw new Error('Cyclic alias detected');
     }
 

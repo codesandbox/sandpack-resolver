@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path/posix';
 
-import resolver, { normalizeModuleSpecifier } from '../lib/resolver.js';
+import resolver, { normalizeModuleSpecifier, resolveAlias } from '../lib/resolver.js';
 import { ModuleNotFoundError } from './errors/ModuleNotFound';
 
 const FIXTURE_PATH = path.join(__dirname, 'fixture');
@@ -48,6 +48,27 @@ describe('resolve', () => {
     aliasFields: ALIAS_KEYS,
     environmentKeys: ENV_KEYS,
   };
+
+  describe('resolveAlias', () => {
+    it('resolves to an exact alias', () => {
+      const resolved = resolveAlias(
+        {
+          filepath: '/node_modules/@nuxt/ui-templates/package.json',
+          content: {
+            aliases: {
+              '/node_modules/@nuxt/ui-templates': '/node_modules/@nuxt/ui-templates/dist/index.mjs',
+              '/node_modules/@nuxt/ui-templates/templates/*': '/node_modules/@nuxt/ui-templates/dist/templates/*',
+              '/node_modules/@nuxt/ui-templates/*': '/node_modules/@nuxt/ui-templates/dist/*',
+            },
+            imports: {},
+          },
+        },
+        '/node_modules/@nuxt/ui-templates'
+      );
+
+      expect(resolved).toBe('/node_modules/@nuxt/ui-templates/dist/index.mjs');
+    });
+  });
 
   describe('file paths', () => {
     it('should resolve relative file with an extension', () => {
