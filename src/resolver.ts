@@ -132,19 +132,15 @@ export function resolveAlias(pkgJson: IFoundPackageJSON, filename: string): stri
       if (!aliasKey.includes('*')) {
         continue;
       }
-
       const match = replaceGlob(aliasKey, aliasValue, relativeFilepath);
       if (match) {
         aliasedPath = match;
-
         if (aliasedPath.startsWith(relativeFilepath)) {
           const newAddition = aliasedPath.substr(relativeFilepath.length);
-
           if (!newAddition.includes('/') && relativeFilepath.endsWith(newAddition)) {
             aliasedPath = relativeFilepath;
           }
         }
-
         break;
       }
     }
