@@ -16,5 +16,7 @@ export function replaceGlob(source: string, target: string, specifier: string): 
   }
 
   const globPart = specifier.substring(prefix.length, specifier.length - suffix.length);
+  console.log(target.substring(0, targetStarLocation), globPart, target.substring(targetStarLocation + 1));
+
   return target.substring(0, targetStarLocation) + globPart + target.substring(targetStarLocation + 1);
 }
