@@ -11,6 +11,12 @@ export function replaceGlob(source: string, target: string, specifier: string): 
   }
 
   const targetStarLocation = target.indexOf('*');
+  const targetBeforeStar = target.substring(0, targetStarLocation);
+
+  if (specifier.indexOf(targetBeforeStar) > -1) {
+    return targetBeforeStar + specifier.substring(targetBeforeStar.length, specifier.length);
+  }
+
   if (targetStarLocation < 0) {
     return target;
   }

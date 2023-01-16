@@ -68,6 +68,25 @@ describe('resolve', () => {
 
       expect(resolved).toBe('/node_modules/@nuxt/ui-templates/dist/index.mjs');
     });
+
+    it('resolves to dist alias', () => {
+      const resolved = resolveAlias(
+        {
+          filepath: '/node_modules/@nuxt/ui-templates/package.json',
+          content: {
+            aliases: {
+              '/node_modules/@nuxt/ui-templates': '/node_modules/@nuxt/ui-templates/dist/index.mjs',
+              '/node_modules/@nuxt/ui-templates/templates/*': '/node_modules/@nuxt/ui-templates/dist/templates/*',
+              '/node_modules/@nuxt/ui-templates/*': '/node_modules/@nuxt/ui-templates/dist/*',
+            },
+            imports: {},
+          },
+        },
+        '/node_modules/@nuxt/ui-templates/dist/index'
+      );
+
+      expect(resolved).toBe('/node_modules/@nuxt/ui-templates/dist/index');
+    });
   });
 
   describe('file paths', () => {
