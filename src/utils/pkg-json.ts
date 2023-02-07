@@ -8,6 +8,7 @@ type AliasesDict = { [key: string]: string };
 export interface ProcessedPackageJSON {
   aliases: AliasesDict;
   imports: AliasesDict;
+  hasExports: boolean;
 }
 
 function sortDescending(a: string, b: string) {
@@ -22,14 +23,18 @@ export function processPackageJSON(
   environmentKeys: string[]
 ): ProcessedPackageJSON {
   if (!content || typeof content !== 'object') {
-    return { aliases: {}, imports: {} };
+    return { aliases: {}, imports: {}, hasExports: false };
   }
 
+  const hasExports = content.exports && pkgRoot !== '/';
+
   const aliases: AliasesDict = {};
-  for (const mainField of mainFields) {
-    if (typeof content[mainField] === 'string') {
-      aliases[pkgRoot] = normalizeAliasFilePath(content[mainField], pkgRoot);
-      break;
+  if (!hasExports) {
+    for (const mainField of mainFields) {
+      if (typeof content[mainField] === 'string') {
+        aliases[pkgRoot] = normalizeAliasFilePath(content[mainField], pkgRoot);
+        break;
+      }
     }
   }
 
@@ -54,7 +59,7 @@ export function processPackageJSON(
   }
 
   // load exports if it's not the root pkg.json
-  if (content.exports && pkgRoot !== '/') {
+  if (hasExports) {
     if (typeof content.exports === 'string') {
       aliases[pkgRoot] = normalizeAliasFilePath(content.exports, pkgRoot);
     } else if (typeof content.exports === 'object') {
@@ -77,5 +82,5 @@ export function processPackageJSON(
     }
   }
 
-  return { aliases, imports };
+  return { aliases, imports, hasExports };
 }

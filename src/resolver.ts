@@ -43,6 +43,7 @@ interface IResolveOptions extends IResolveOptionsInput {
   skipTsConfig: boolean;
   moduleDirectories: string[];
   resolverCache: ResolverCache;
+  pkgJson?: IFoundPackageJSON;
 }
 
 function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
@@ -184,21 +185,22 @@ class Resolver {
     const dirPath = pathUtils.dirname(opts.filename);
     const filename = resolveFile(moduleSpecifier, dirPath);
     const isAbsoluteFilename = filename[0] === '/';
-    const pkgJson = await this.findPackageJSON(isAbsoluteFilename ? filename : opts.filename, opts);
+    const pkgJson = opts.pkgJson || (await this.findPackageJSON(isAbsoluteFilename ? filename : opts.filename, opts));
     return resolveAlias(pkgJson, filename);
   }
 
   // $MakeMeSync
   async findPackageJSON(filepath: string, opts: IResolveOptions): Promise<IFoundPackageJSON> {
-    let pkg = await this.loadPackageJSON(filepath, opts);
+    let pkg = await this.loadNearestPackageJSON(filepath, opts);
     if (!pkg) {
-      pkg = await this.loadPackageJSON('/index', opts);
+      pkg = await this.loadNearestPackageJSON('/index', opts);
       if (!pkg) {
         return {
           filepath: '/package.json',
           content: {
             aliases: {},
             imports: {},
+            hasExports: false,
           },
         };
       }
@@ -262,35 +264,46 @@ class Resolver {
   }
 
   // $MakeMeSync
-  async loadPackageJSON(
+  async loadPackageJSON(directory: string, opts: IResolveOptions): Promise<IFoundPackageJSON | null> {
+    const packageFilePath = pathUtils.join(directory, 'package.json');
+    let packageContent = opts.resolverCache.get(packageFilePath);
+    if (packageContent === undefined) {
+      try {
+        const content = await opts.readFile(packageFilePath);
+        packageContent = processPackageJSON(
+          JSON.parse(content),
+          pathUtils.dirname(packageFilePath),
+          opts.mainFields,
+          opts.aliasFields,
+          opts.environmentKeys
+        );
+        opts.resolverCache.set(packageFilePath, packageContent);
+      } catch (err) {
+        opts.resolverCache.set(packageFilePath, false);
+      }
+    }
+
+    if (packageContent) {
+      return {
+        filepath: packageFilePath,
+        content: packageContent,
+      };
+    } else {
+      return null;
+    }
+  }
+
+  // $MakeMeSync
+  async loadNearestPackageJSON(
     filepath: string,
     opts: IResolveOptions,
     rootDir: string = '/'
   ): Promise<IFoundPackageJSON | null> {
     const directories = getParentDirectories(filepath, rootDir);
     for (const directory of directories) {
-      const packageFilePath = pathUtils.join(directory, 'package.json');
-      let packageContent = opts.resolverCache.get(packageFilePath);
-      if (packageContent === undefined) {
-        try {
-          const content = await opts.readFile(packageFilePath);
-          packageContent = processPackageJSON(
-            JSON.parse(content),
-            pathUtils.dirname(packageFilePath),
-            opts.mainFields,
-            opts.aliasFields,
-            opts.environmentKeys
-          );
-          opts.resolverCache.set(packageFilePath, packageContent);
-        } catch (err) {
-          opts.resolverCache.set(packageFilePath, false);
-        }
-      }
-      if (packageContent) {
-        return {
-          filepath: packageFilePath,
-          content: packageContent,
-        };
+      const foundPackageJSON = await this.loadPackageJSON(directory, opts);
+      if (foundPackageJSON) {
+        return foundPackageJSON;
       }
     }
     return null;
@@ -306,12 +319,17 @@ class Resolver {
 
         try {
           const pkgFilePath = pathUtils.join(rootDir, pkgSpecifierParts.filepath);
-          const pkgJson = await this.loadPackageJSON(pkgFilePath, opts, rootDir);
+          const rootPkgJson = await this.loadPackageJSON(rootDir, opts);
+          const pkgJson =
+            rootPkgJson && rootPkgJson.content.hasExports
+              ? rootPkgJson
+              : await this.loadNearestPackageJSON(pkgFilePath, opts, rootDir);
           if (pkgJson) {
             try {
               return this.internalResolve(pkgFilePath, {
                 ...opts,
                 filename: pkgJson.filepath,
+                pkgJson,
               }); // $MakeMeSync
             } catch (err) {
               if (!pkgSpecifierParts.filepath) {
