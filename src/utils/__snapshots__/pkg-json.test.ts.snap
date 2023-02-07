@@ -18,6 +18,7 @@ exports[`process package.json Should correctly handle nested pkg#exports fields 
     "/node_modules/solid-js/web": "/node_modules/solid-js/web/dist/web.cjs",
     "/node_modules/solid-js/web/dist/*": "/node_modules/solid-js/web/dist/*",
   },
+  "hasExports": true,
   "imports": {},
 }
 `;
@@ -38,6 +39,7 @@ exports[`process package.json Should correctly handle root pkg.json 1`] = `
     "something": "/nested/test.js",
     "something/*": "/nested/test.js/*",
   },
+  "hasExports": false,
   "imports": {},
 }
 `;
@@ -227,6 +229,7 @@ exports[`process package.json Should correctly process pkg.exports from @babel/r
     "/node_modules/@babel/runtime/regenerator/": "/node_modules/@babel/runtime/regenerator/",
     "/node_modules/@babel/runtime/regenerator/*.js": "/node_modules/@babel/runtime/regenerator/*.js",
   },
+  "hasExports": true,
   "imports": {},
 }
 `;

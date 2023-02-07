@@ -499,6 +499,36 @@ describe('resolve', () => {
       });
       expect(resolved).toBe('/node_modules/rollup/dist/es/rollup.js');
     });
+
+    it('should ignore the closest package.json and aliases in it when exports are available in the root', () => {
+      const resolved = resolver.resolveSync('@emotion/react/jsx-runtime', {
+        ...baseConfig,
+        filename: '/foo.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        environmentKeys: ['browser', 'development', 'default', 'require', 'import'],
+        mainFields: ['module', 'browser', 'main', 'jsnext:main'],
+        aliasFields: ['browser', 'alias'],
+        isFile,
+        readFile,
+      });
+      expect(resolved).toBe('/node_modules/@emotion/react/jsx-runtime/dist/emotion-react-jsx-runtime.cjs.js');
+    });
+
+    it('should always use exports from the root of the package and not from the closest package.json', () => {
+      const resolved = resolver.resolveSync('exports-from-root/nested', {
+        ...baseConfig,
+        filename: '/foo.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        environmentKeys: ['browser', 'development', 'default', 'require', 'import'],
+        mainFields: ['module', 'browser', 'main', 'jsnext:main'],
+        aliasFields: ['browser', 'alias'],
+        isFile,
+        readFile,
+      });
+      // this should specifically not resolve to `/node_modules/exports-from-root/nested/file.js`
+      // package.json#exports should only be used from the root of the package
+      expect(resolved).toBe('/node_modules/exports-from-root/file.js');
+    });
   });
 
   describe('package#imports', () => {
