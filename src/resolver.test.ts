@@ -529,6 +529,49 @@ describe('resolve', () => {
       // package.json#exports should only be used from the root of the package
       expect(resolved).toBe('/node_modules/exports-from-root/file.js');
     });
+
+    it('should handle conditional root exports', () => {
+      const resolved = resolver.resolveSync('its-fine', {
+        ...baseConfig,
+        filename: '/foo.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        environmentKeys: ['browser', 'development', 'default', 'require', 'import'],
+        mainFields: ['module', 'browser', 'main', 'jsnext:main'],
+        aliasFields: ['browser', 'alias'],
+        isFile,
+        readFile,
+      });
+      expect(resolved).toBe('/node_modules/its-fine/out/index.cjs');
+    });
+
+    it('resolve fflate correctly', () => {
+      const resolved = resolver.resolveSync('fflate', {
+        ...baseConfig,
+        filename: '/node_modules/its-fine/out/index.cjs',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        environmentKeys: ['browser', 'development', 'default', 'require', 'import'],
+        mainFields: ['module', 'browser', 'main', 'jsnext:main'],
+        aliasFields: ['browser', 'alias'],
+        isFile,
+        readFile,
+      });
+      expect(resolved).toBe('/node_modules/fflate/lib/index.cjs');
+    });
+
+    // We should still post process imports using the browser field even when a package has exports
+    it('resolve fflate#worker correctly to browser version', () => {
+      const resolved = resolver.resolveSync('./node-worker.cjs', {
+        ...baseConfig,
+        filename: '/node_modules/fflate/lib/index.cjs',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+        environmentKeys: ['browser', 'development', 'default', 'require', 'import'],
+        mainFields: ['module', 'browser', 'main', 'jsnext:main'],
+        aliasFields: ['browser', 'alias'],
+        isFile,
+        readFile,
+      });
+      expect(resolved).toBe('/node_modules/fflate/lib/worker.cjs');
+    });
   });
 
   describe('package#imports', () => {
