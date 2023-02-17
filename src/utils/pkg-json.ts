@@ -15,6 +15,8 @@ function sortDescending(a: string, b: string) {
   return b.length - a.length;
 }
 
+// See https://webpack.js.org/guides/package-exports/ for a good reference on how this should work
+// We aren't completely spec compliant but we're trying to match it as close as possible without nuking performance
 export function processPackageJSON(
   content: any,
   pkgRoot: string,
@@ -29,6 +31,9 @@ export function processPackageJSON(
   const hasExports = content.exports && pkgRoot !== '/';
 
   const aliases: AliasesDict = {};
+
+  // If there are exports the entry point should be configured in those exports
+  // so we ignore the other main fields
   if (!hasExports) {
     for (const mainField of mainFields) {
       if (typeof content[mainField] === 'string') {
@@ -38,6 +43,30 @@ export function processPackageJSON(
     }
   }
 
+  // load exports from any package.json except for the root /package.json
+  if (hasExports) {
+    if (typeof content.exports === 'string') {
+      aliases[pkgRoot] = normalizeAliasFilePath(content.exports, pkgRoot);
+    } else if (typeof content.exports === 'object') {
+      const exportKeys = Object.keys(content.exports);
+      if (!exportKeys[0].startsWith('.')) {
+        const resolvedExport = extractPathFromExport(content.exports, pkgRoot, environmentKeys);
+        if (!resolvedExport) {
+          throw new Error(`Could not find a valid export for ${pkgRoot}`);
+        }
+        aliases[pkgRoot] = resolvedExport;
+      } else {
+        for (const exportKey of Object.keys(content.exports).sort(sortDescending)) {
+          const exportValue = extractPathFromExport(content.exports[exportKey], pkgRoot, environmentKeys);
+          const normalizedKey = normalizeAliasFilePath(exportKey, pkgRoot);
+          aliases[normalizedKey] = exportValue || EMPTY_SHIM;
+        }
+      }
+    }
+  }
+
+  // These aliases should happen as a seperate pass from exports
+  // but let's just give it a higher priority for now, we can refactor it later
   if (content.browser === false && mainFields.includes('browser')) {
     aliases[pkgRoot] = EMPTY_SHIM;
   }
@@ -54,19 +83,6 @@ export function processPackageJSON(
         if (aliasFieldKey !== 'browser') {
           aliases[`${normalizedKey}/*`] = `${normalizedValue}/*`;
         }
-      }
-    }
-  }
-
-  // load exports if it's not the root pkg.json
-  if (hasExports) {
-    if (typeof content.exports === 'string') {
-      aliases[pkgRoot] = normalizeAliasFilePath(content.exports, pkgRoot);
-    } else if (typeof content.exports === 'object') {
-      for (const exportKey of Object.keys(content.exports).sort(sortDescending)) {
-        const exportValue = extractPathFromExport(content.exports[exportKey], pkgRoot, environmentKeys);
-        const normalizedKey = normalizeAliasFilePath(exportKey, pkgRoot);
-        aliases[normalizedKey] = exportValue || EMPTY_SHIM;
       }
     }
   }
