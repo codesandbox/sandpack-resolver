@@ -1,8 +1,9 @@
 {
   "name": "sandpack-resolver",
   "version": "0.2.0",
-  "main": "./lib/resolver.cjs",
+  "main": "./lib/resolver.js",
   "module": "./lib/resolver.mjs",
+  "types": "./lib/resolver.d.ts",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
