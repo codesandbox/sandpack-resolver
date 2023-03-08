@@ -1,6 +1,6 @@
 {
   "name": "sandpack-resolver",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "main": "./lib/resolver.js",
   "module": "./lib/resolver.mjs",
   "types": "./lib/resolver.d.ts",
