@@ -658,4 +658,16 @@ describe('resolve', () => {
       expect(resolved).toBe('/src/app/something.js');
     });
   });
+
+  describe('paths', () => {
+    it('should be able to resolve next primitive using paths', () => {
+      const resolved = resolver.resolveSync('./events', {
+        ...baseConfig,
+        moduleDirectories: ['/node_modules/next/compiled/@edge-runtime/primitives'],
+        filename: '/foo.js',
+        extensions: ['.ts', '.tsx', '.js', '.jsx'],
+      });
+      expect(resolved).toBe('/node_modules/next/compiled/@edge-runtime/primitives/events.js');
+    });
+  });
 });
