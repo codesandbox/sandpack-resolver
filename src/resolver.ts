@@ -18,7 +18,10 @@ export interface IResolveOptionsInput {
   isFileSync: FnIsFileSync;
   readFile: FnReadFile;
   readFileSync: FnReadFileSync;
+  /** Additional places where node_modules can be found */
   moduleDirectories?: string[];
+  /** Paths is similar to baseUrl in tsconfig, with slightly different behavior */
+  paths?: string[];
   resolverCache?: ResolverCache;
   skipTsConfig?: boolean;
 
@@ -52,6 +55,12 @@ function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
     : new Set();
   normalizedModuleDirectories.add('node_modules');
 
+  if (opts.paths) {
+    for (const p of opts.paths) {
+      normalizedModuleDirectories.add(p);
+    }
+  }
+
   return {
     filename: opts.filename,
     extensions: [...new Set(['', ...opts.extensions])],
@@ -59,6 +68,7 @@ function normalizeResolverOptions(opts: IResolveOptionsInput): IResolveOptions {
     isFileSync: opts.isFileSync,
     readFile: opts.readFile,
     readFileSync: opts.readFileSync,
+    paths: opts.paths,
     moduleDirectories: [...normalizedModuleDirectories],
     resolverCache: opts.resolverCache || new Map(),
     mainFields: opts.mainFields,
@@ -312,8 +322,9 @@ class Resolver {
   // $MakeMeSync
   async resolveNodeModule(moduleSpecifier: string, opts: IResolveOptions): Promise<string> {
     const pkgSpecifierParts = extractPkgSpecifierParts(moduleSpecifier);
-    const directories = getParentDirectories(opts.filename);
+    const _directories = getParentDirectories(opts.filename);
     for (const modulesPath of opts.moduleDirectories) {
+      const directories = modulesPath[0] === '/' ? [''] : _directories;
       for (const directory of directories) {
         const rootDir = pathUtils.join(directory, modulesPath, pkgSpecifierParts.pkgName);
 
@@ -439,7 +450,23 @@ class Resolver {
   async resolve(moduleSpecifier: string, inputOpts: IResolveOptionsInput): Promise<string> {
     const opts = normalizeResolverOptions(inputOpts);
     const specifier = await this.resolvePkgImports(moduleSpecifier, opts);
-    return this.internalResolve(specifier, opts); // $MakeMeSync
+    const filenames = new Set([opts.filename]);
+    if (opts.paths?.length) {
+      for (const path of opts.paths) {
+        filenames.add(pathUtils.join(path, 'index.js'));
+      }
+    }
+    let err = null;
+    for (const filename of filenames) {
+      opts.filename = filename;
+      try {
+        const result = await this.internalResolve(specifier, opts); // $MakeMeSync
+        return result;
+      } catch (_err) {
+        err = _err;
+      }
+    }
+    throw err;
   }
 }
 

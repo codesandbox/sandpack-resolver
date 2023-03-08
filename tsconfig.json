@@ -2,7 +2,7 @@
   "compilerOptions": {
     "strict": true,
     "module": "es2020",
-    "target": "esnext",
+    "target": "es2020",
     "jsx": "preserve",
     "esModuleInterop": true,
     "sourceMap": true,

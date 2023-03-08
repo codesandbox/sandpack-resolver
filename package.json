@@ -21,8 +21,8 @@
     "transpile:sync": "babel ./src/resolver.ts --out-file ./src/resolver.js && cp ./src/resolver.js ./lib/resolver.js",
     "build": "tsc --project tsconfig.build.json && yarn transpile:sync",
     "bundle": "yarn bundle:cjs && yarn bundle:esm && yarn clean:build",
-    "bundle:cjs": "esbuild ./lib/resolver.js --bundle --format=cjs --outfile=./lib/bundle.js --target=es2018",
-    "bundle:esm": "esbuild ./lib/resolver.js --bundle --format=esm --outfile=./lib/bundle.mjs --target=es2018",
+    "bundle:cjs": "esbuild ./lib/resolver.js --bundle --format=cjs --outfile=./lib/bundle.js --target=es2020",
+    "bundle:esm": "esbuild ./lib/resolver.js --bundle --format=esm --outfile=./lib/bundle.mjs --target=es2020",
     "clean:build": "mv lib/bundle.js lib/bundle.tmp && mv lib/bundle.mjs lib/bundle.mjs.tmp && rm -rf lib/fixture lib/**.js* lib/**/**.js* && mv lib/bundle.tmp lib/resolver.js && mv lib/bundle.mjs.tmp lib/resolver.mjs",
     "format": "prettier --write --with-node-modules \"./**/*.{ts,js,json,md}\"",
     "prepack": "yarn build && yarn bundle && yarn test"

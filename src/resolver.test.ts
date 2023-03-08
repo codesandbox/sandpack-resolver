@@ -663,7 +663,7 @@ describe('resolve', () => {
     it('should be able to resolve next primitive using paths', () => {
       const resolved = resolver.resolveSync('./events', {
         ...baseConfig,
-        moduleDirectories: ['/node_modules/next/compiled/@edge-runtime/primitives'],
+        paths: ['/node_modules/next/compiled/@edge-runtime/primitives'],
         filename: '/foo.js',
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
       });
